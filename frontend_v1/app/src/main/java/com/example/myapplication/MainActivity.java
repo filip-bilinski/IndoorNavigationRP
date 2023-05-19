@@ -17,7 +17,7 @@ public class MainActivity extends AppCompatActivity {
     private String rooms = "";
 
     private boolean useStaticIp = true;
-    private String server_ip = "192.168.1.14";
+    private String server_ip = "192.168.2.17";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -29,8 +29,7 @@ public class MainActivity extends AppCompatActivity {
         Button button_top_5 = (Button) findViewById(R.id.button_top_5);
         TextView list_of_rooms = (TextView) findViewById(R.id.list_of_rooms);
 
-        list_of_rooms.setText(rooms);
-
+        new Thread(new GetRoomsExecutor(rooms, this, server_ip)).start();
 
         // Make a pop up showing the room label
         Intent server_ip_intent = new Intent(MainActivity.this, SetServerIp.class);
@@ -41,7 +40,6 @@ public class MainActivity extends AppCompatActivity {
                         (result) -> {
                             server_ip = result.getData().getStringExtra("server_ip");
 
-                            new Thread(new GetRoomsExecutor(rooms, this, server_ip)).start();
                             // code to process data from activity called
                         }
                 );

@@ -19,6 +19,7 @@ public class GetRoomsExecutor implements Runnable{
     @Override
     public void run() {
         this.room_list = ServerCommunication.get_room_list(ip);
+        System.out.println(this.room_list);
         this.mainActivity.runOnUiThread(new Runnable() {
             @Override
             public void run() {

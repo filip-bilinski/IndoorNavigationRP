@@ -1,17 +1,23 @@
 package com.example.myapplication;
 
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import java.util.ArrayList;
-
 public class MainActivity extends AppCompatActivity {
+    private String rooms = "";
 
+    private boolean useStaticIp = true;
+    private String server_ip = "192.168.2.17";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -23,11 +29,23 @@ public class MainActivity extends AppCompatActivity {
         Button button_top_5 = (Button) findViewById(R.id.button_top_5);
         TextView list_of_rooms = (TextView) findViewById(R.id.list_of_rooms);
 
+        new Thread(new GetRoomsExecutor(rooms, this, server_ip)).start();
 
-        // TODO: show all rooms in the database
-        list_of_rooms.setText("room1 \nroom2");
+        // Make a pop up showing the room label
+        Intent server_ip_intent = new Intent(MainActivity.this, SetServerIp.class);
 
+        ActivityResultLauncher<Intent> serverActivityIpLauncher =
+                registerForActivityResult(new
+                                ActivityResultContracts.StartActivityForResult(),
+                        (result) -> {
+                            server_ip = result.getData().getStringExtra("server_ip");
 
+                            // code to process data from activity called
+                        }
+                );
+        if(!useStaticIp) {
+            serverActivityIpLauncher.launch(server_ip_intent);
+        }
         // Popup for recognizing the current room
         button_recognize.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -50,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 // Make a pop up asking for the label
                 Intent intent = new Intent(MainActivity.this, LabelWindow.class);
-
+                intent.putExtra("server_ip", server_ip);
                 startActivity(intent);
             }
         });
@@ -74,5 +92,9 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+    }
+
+    public TextView getRoomList() {
+        return (TextView) findViewById(R.id.list_of_rooms);
     }
 }

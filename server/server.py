@@ -50,8 +50,9 @@ def create_spectrogram(array, cut_offset):
     rgb = cv2.imread("temp.jpg")
     rgb = rgb[59:428, 80:579]
     rgb = cv2.resize(rgb, (32, 5))
-    
-    return rgb
+    grayscale = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+
+    return grayscale
 
 def debug_spectrogram(array, filename, cut_offset):
     f, t, Sxx = spectrogram(array, 44100, window=hann(256, sym=False))
@@ -87,20 +88,18 @@ def add_room():
     room_label = room_data['room_label']
     building_label = room_data['building_label']
     room_audio = room_data['audio']
-    
-    
-    
 
     counter = 0
     np_arr = np.asarray(room_audio, dtype=np.int16)
 
-    #create_spectrogram(np_arr[0], "whole.jpg")
-
     for i in range(2, chirp_amount - 2):
 
+        # slice the audio into fixed intervals
         start_rate = int(i * interval_rate)
         sliced = np_arr[0,start_rate:(int(start_rate + interval_rate))]
         
+        # Find the arg max (which represents the emited chirp) to offset
+        # slices so that the chirp is on the edge of a slice 
         print(np.argmax(sliced))
         start_rate = int(i * interval_rate + np.argmax(sliced))
         sliced = np_arr[0,start_rate:(int(start_rate + interval_rate))]
@@ -110,14 +109,15 @@ def add_room():
             debug_spectrogram(sliced, 'tarck' + str(counter) + '.jpg', 0)
         counter += 1
 
+        # Create spectrogram
         rgb = create_spectrogram(sliced, 5)
 
+        # Save entry to database
         data = {
         u'building': building_label,
         u'room': room_label,
         u'audio': rgb.tolist()
         }
-
         db.add_entry(building_label, data)
 
 

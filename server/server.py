@@ -49,7 +49,7 @@ def create_spectrogram(array, cut_offset):
 
     rgb = cv2.imread("temp.jpg")
     rgb = rgb[59:428, 80:579]
-    rgb = cv2.resize(rgb, (int(rgb.shape[0]/2), int(rgb.shape[1]/2)))
+    rgb = cv2.resize(rgb, (32, 5))
     
     return rgb
 
@@ -101,7 +101,7 @@ def add_room():
         start_rate = int(i * interval_rate)
         sliced = np_arr[0,start_rate:(int(start_rate + interval_rate))]
         
-
+        print(np.argmax(sliced))
         start_rate = int(i * interval_rate + np.argmax(sliced))
         sliced = np_arr[0,start_rate:(int(start_rate + interval_rate))]
         

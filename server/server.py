@@ -97,7 +97,7 @@ def debug_spectrogram(array, filename, cut_offset):
 def get_rooms():
     room_list = []
     response_body = {}
-    rooms = db.retrieve_rooms()
+    rooms, _ = db.retrieve_rooms()
     
     return rooms
 
@@ -138,6 +138,30 @@ def add_room():
 
     return 'OK'
 
+@APP.route('/create_model', methods=['GET'])
+def create_model():
+    _ , number_of_rooms = db.retrieve_rooms()
+    clasifier.create_new_model(number_of_rooms)
+
+    return 'OK'
+
+@APP.route('/save_model', methods=['GET'])
+def save_model():
+    clasifier.save_model('model')
+
+    return 'OK'
+
+@APP.route('/load_model', methods=['GET'])
+def load_model():
+    clasifier.load_model('model')
+
+    return 'OK'
+
+@APP.route('/train_model', methods=['GET'])
+def train():
+    #TODO
+
+    return 'OK'
 
 @APP.route('/clasify', methods=['POST'])
 def calsify_room():

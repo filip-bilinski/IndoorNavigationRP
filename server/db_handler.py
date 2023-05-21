@@ -10,12 +10,15 @@ class db_handler:
 
     def retrieve_rooms(self):
         result = {}
+        number_of_rooms = 0
         for collection in self.data_base.list_collection_names():
             coursor = self.data_base[collection].find({})
             intermediate = []
             for document in coursor:
-                intermediate.append(document['room'])
+                if document['room'] not in intermediate:
+                    number_of_rooms += 1
+                    intermediate.append(document['room'])
             
             result.update({collection: intermediate})
         
-        return result
+        return result, number_of_rooms

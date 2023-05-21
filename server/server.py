@@ -11,11 +11,13 @@ from db_handler import db_handler
 import pymongo
 import cv2
 import time
+from clasifier import CNN_clasifier
 
 APP = Flask(__name__)
 
 client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = db_handler(client, "RP")
+clasifier = CNN_clasifier()
 
 min_frequency = 19500
 max_frequency = 20500

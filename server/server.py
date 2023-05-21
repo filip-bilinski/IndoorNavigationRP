@@ -22,9 +22,27 @@ max_frequency = 20500
 
 interval = 0.1
 sample_rate = 44100
-chirp_amount = 504
+chirp_amount = 10
 
 interval_rate = sample_rate * interval
+
+def find_first_chirp(arr):
+    # Scan at most the first interval for the first chirp
+    sliced_arr = arr[0, int(2*interval_rate):int(3*interval_rate)]
+    f, t, Sxx = spectrogram(sliced_arr, 44100, window=hann(256, sym=False))
+    # Only handle high frequencies
+    high_frequency_indices = np.where((f > min_frequency) & (f < max_frequency))
+    Sxx = Sxx[high_frequency_indices]
+
+    # Calculate the highest point of intensity to find the chirp
+    end_of_chirps = np.argmax(Sxx, axis=1)
+
+    counts = np.bincount(end_of_chirps)
+    chirp_cut_off = np.argmax(counts)
+    time_of_cut_off = t[chirp_cut_off]
+
+    return int(time_of_cut_off * sample_rate )
+
 
 def create_spectrogram(array, cut_offset):
     f, t, Sxx = spectrogram(array, 44100, window=hann(256, sym=False))
@@ -91,17 +109,12 @@ def add_room():
 
     counter = 0
     np_arr = np.asarray(room_audio, dtype=np.int16)
+    offset = find_first_chirp(np_arr)
 
     for i in range(2, chirp_amount - 2):
-
-        # slice the audio into fixed intervals
-        start_rate = int(i * interval_rate)
-        sliced = np_arr[0,start_rate:(int(start_rate + interval_rate))]
         
-        # Find the arg max (which represents the emited chirp) to offset
-        # slices so that the chirp is on the edge of a slice 
-        print(np.argmax(sliced))
-        start_rate = int(i * interval_rate + np.argmax(sliced))
+        # Slice the array with the offset so that chirp is at the begining of the slice
+        start_rate = int(i * interval_rate + offset)
         sliced = np_arr[0,start_rate:(int(start_rate + interval_rate))]
         
         if i < 20:

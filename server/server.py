@@ -24,7 +24,7 @@ max_frequency = 20500
 
 interval = 0.1
 sample_rate = 44100
-chirp_amount = 10
+chirp_amount = 504
 
 interval_rate = sample_rate * interval
 
@@ -119,10 +119,10 @@ def add_room():
         start_rate = int(i * interval_rate + offset)
         sliced = np_arr[0,start_rate:(int(start_rate + interval_rate))]
         
-        if i < 20:
-            debug_spectrogram(sliced, 'tarck_cut' + str(counter) + '.jpg', 5)
-            debug_spectrogram(sliced, 'tarck' + str(counter) + '.jpg', 0)
-        counter += 1
+        # if i < 20:
+        #     debug_spectrogram(sliced, 'tarck_cut' + str(counter) + '.jpg', 5)
+        #     debug_spectrogram(sliced, 'tarck' + str(counter) + '.jpg', 0)
+        # counter += 1
 
         # Create spectrogram
         rgb = create_spectrogram(sliced, 5)
@@ -159,7 +159,9 @@ def load_model():
 
 @APP.route('/train_model', methods=['GET'])
 def train():
-    #TODO
+    labels, data = db.prepare_training_dataset()
+    print(len(labels), len(data))
+    clasifier.tarin_model(data, labels, validation_data=(data, labels))
 
     return 'OK'
 

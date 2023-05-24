@@ -53,6 +53,7 @@ class CNN_clasifier():
         model.add(layers.Flatten())
 
         model.add(layers.Dense(1024, activation='relu'))
+        model.add(layers.Dropout(0.4))
         model.add(layers.Dense(number_of_rooms, activation='relu'))
 
         model.compile(optimizer='adam',
@@ -69,7 +70,6 @@ class CNN_clasifier():
         self.model.fit(training_data, training_labels, epochs=epochs, validation_data=validation_data)
         self.trained = True
         
-        self.model.train()
 
     def save_model(self, filename):
         if not self.trained:

@@ -9,6 +9,7 @@ class CNN_clasifier():
     def __init__(self):
         self.model = None
         self.trained = False
+        self.initialized = False
         
 
     def create_new_model(self, number_of_rooms):
@@ -59,16 +60,36 @@ class CNN_clasifier():
         model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
+        
         self.model = model
+        self.trained = False
+        self.initialized = True
     
-    def tarin_model(self, training_data, training_labels, epochs=20, validation_data=None):
+    def tarin_model(self, training_data, training_labels, epochs=30, validation_data=None):
         if self.trained:
             print("Model already tarined, initialize new model first")
             return
 
+        if not self.initialized:
+            print("Model not initialized")
+            return
 
-        self.model.fit(training_data, training_labels, epochs=epochs, validation_data=validation_data)
+
+        history = self.model.fit(training_data, training_labels, epochs=epochs, validation_data=validation_data)
         self.trained = True
+        if validation_data is not None:
+            self.evaluate_model(history, validation_data[0], validation_data[1])
+
+    def evaluate_model(self, history, test_images, test_labels):
+        plt.plot(history.history['accuracy'], label='accuracy')
+        plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+        plt.xlabel('Epoch')
+        plt.ylabel('Accuracy')
+        plt.ylim([0.5, 1])
+        plt.legend(loc='lower right')
+        plt.savefig("tarining_report.jpg")
+
+        test_loss, test_acc = self.model.evaluate(test_images,  test_labels, verbose=2)
         
 
     def save_model(self, filename):
@@ -81,6 +102,7 @@ class CNN_clasifier():
     def load_model(self, filename):
         self.model = models.load_model('./models/' + filename)
         self.trained = True
+        self.initialized = True
 
     def summary(self):
         if self.model is None:

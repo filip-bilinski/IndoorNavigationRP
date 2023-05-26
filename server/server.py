@@ -12,6 +12,8 @@ import pymongo
 import cv2
 import time
 from clasifier import CNN_clasifier
+from sklearn.model_selection import train_test_split
+
 
 APP = Flask(__name__)
 
@@ -24,13 +26,18 @@ max_frequency = 20500
 
 interval = 0.1
 sample_rate = 44100
+chirp_radius = 0.02
+interval_samples = sample_rate * interval
 chirp_amount = 504
 
+debug = True
+
 interval_rate = sample_rate * interval
+chirp_radius_samples = int(sample_rate * chirp_radius/2)
 
 def find_first_chirp(arr):
     # Scan at most the first interval for the first chirp
-    sliced_arr = arr[0, int(2*interval_rate):int(3*interval_rate)]
+    sliced_arr = arr[:int(interval_rate)]
     f, t, Sxx = spectrogram(sliced_arr, 44100, window=hann(256, sym=False))
     # Only handle high frequencies
     high_frequency_indices = np.where((f > min_frequency) & (f < max_frequency))
@@ -46,18 +53,11 @@ def find_first_chirp(arr):
     return int(time_of_cut_off * sample_rate )
 
 
-def create_spectrogram(array, cut_offset):
+def create_spectrogram(array):
     f, t, Sxx = spectrogram(array, 44100, window=hann(256, sym=False))
-
-    
     indecies = np.where((f > min_frequency) & (f < max_frequency))
-
-    
-    time_segments = t.shape[0] - cut_offset
-    Sxx = Sxx[indecies, cut_offset:time_segments]
-    Sxx = Sxx[0]
+    Sxx = Sxx[indecies]
     f = f[indecies]
-    t = t[cut_offset:time_segments]
 
     figure = plt.pcolormesh(t, f, Sxx, shading='gouraud')
     plt.ylabel('Frequency [Hz]')
@@ -65,7 +65,7 @@ def create_spectrogram(array, cut_offset):
     plt.savefig("temp.jpg")
     plt.clf()
 
-    time.sleep(0.2)
+    time.sleep(0.1)
 
     rgb = cv2.imread("temp.jpg")
     rgb = rgb[59:428, 80:579]
@@ -74,18 +74,15 @@ def create_spectrogram(array, cut_offset):
 
     return grayscale
 
-def debug_spectrogram(array, filename, cut_offset):
+def debug_spectrogram(array, filename):
     f, t, Sxx = spectrogram(array, 44100, window=hann(256, sym=False))
 
     
     indecies = np.where((f > min_frequency) & (f < max_frequency))
 
     
-    time_segments = t.shape[0] - cut_offset
-    Sxx = Sxx[indecies, cut_offset:time_segments]
-    Sxx = Sxx[0]
+    Sxx = Sxx[indecies]
     f = f[indecies]
-    t = t[cut_offset:time_segments]
 
     figure = plt.pcolormesh(t, f, Sxx, shading='gouraud')
     plt.ylabel('Frequency [Hz]')
@@ -111,21 +108,29 @@ def add_room():
 
     counter = 0
     np_arr = np.asarray(room_audio, dtype=np.int16)
+
+    np_arr = np_arr[0, int(2 * interval_samples): int((chirp_amount - 2) * interval_samples)]
     offset = find_first_chirp(np_arr)
 
-    for i in range(2, chirp_amount - 2):
+    for i in range(chirp_amount - 4):
         
         # Slice the array with the offset so that chirp is at the begining of the slice
-        start_rate = int(i * interval_rate + offset)
-        sliced = np_arr[0,start_rate:(int(start_rate + interval_rate))]
+        start_rate = int(i * interval_samples + offset + chirp_radius_samples)
+        end_rate = int((i + 1) * interval_samples + offset - chirp_radius_samples)
+        sliced = np_arr[start_rate:end_rate]
         
-        # if i < 20:
-        #     debug_spectrogram(sliced, 'tarck_cut' + str(counter) + '.jpg', 5)
-        #     debug_spectrogram(sliced, 'tarck' + str(counter) + '.jpg', 0)
-        # counter += 1
+        if debug and i < 20:
+            start_rate_debug = int(i * interval_samples + offset)
+            end_rate_debug = int((i + 1) * interval_samples + offset)
+
+            sliced_debug = np_arr[start_rate_debug:end_rate_debug]
+
+            debug_spectrogram(sliced, 'tarck_cut' + str(counter) + '.jpg')
+            debug_spectrogram(sliced_debug, 'tarck' + str(counter) + '.jpg')
+        counter += 1
 
         # Create spectrogram
-        rgb = create_spectrogram(sliced, 5)
+        rgb = create_spectrogram(sliced)
 
         # Save entry to database
         data = {
@@ -160,10 +165,12 @@ def load_model():
 @APP.route('/train_model', methods=['GET'])
 def train():
     labels, data = db.prepare_training_dataset()
+    images_train, images_test, labels_train, labels_test = train_test_split(data, labels, test_size=0.5, random_state=42)
     print(len(labels), len(data))
-    clasifier.tarin_model(data, labels, validation_data=(data, labels))
+    clasifier.tarin_model(images_train, labels_train, validation_data=(images_test, labels_test))
 
     return 'OK'
+    
 
 @APP.route('/clasify', methods=['POST'])
 def calsify_room():

@@ -17,7 +17,7 @@ public class MainActivity extends AppCompatActivity {
     private String rooms = "";
 
     private boolean useStaticIp = true;
-    private String server_ip = "192.168.2.17";
+    private String server_ip = "192.168.0.26";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,14 +50,9 @@ public class MainActivity extends AppCompatActivity {
         button_recognize.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO: get the label of the room
-                String room_label = "room 1";
-
-
                 // Make a pop up showing the room label
                 Intent intent = new Intent(MainActivity.this, RecognizeWindow.class);
-                intent.putExtra("title", "The room label is:");
-                intent.putExtra("text", room_label);
+                intent.putExtra("ip", server_ip);
                 startActivity(intent);
             }
         });

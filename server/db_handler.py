@@ -53,3 +53,11 @@ class db_handler:
         self.data_base['room_to_label'].insert_one(room_to_label)
 
         return labels, data
+
+    def int_label_to_room(self,int_label):
+        coursor = self.data_base['room_to_label'].find({})
+
+        print(int_label)
+        
+        for document in coursor:
+            return list(document.keys())[list(document.values()).index(int_label)]

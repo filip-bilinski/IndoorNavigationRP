@@ -21,8 +21,7 @@ public class RecognizeWindow extends Activity {
 
         // set the text of the popup
         Intent intent = getIntent();
-        popup_title.setText(intent.getStringExtra("title"));
-        popup_text.setText(intent.getStringExtra("text"));
+        String ip = intent.getStringExtra("ip");
 
         // Setup pop up layout
         DisplayMetrics displayMetrics = new DisplayMetrics();
@@ -38,6 +37,7 @@ public class RecognizeWindow extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
         getWindow().setAttributes(layoutParams);
 
+        new Thread(new RecognizeRoomExecutor(this, ip)).start();
 
         // Make a back button
         Button button_back = (Button) findViewById(R.id.button_back_popup);
@@ -47,5 +47,9 @@ public class RecognizeWindow extends Activity {
                 finish();
             }
         });
+    }
+
+    public TextView get_label_text_view() {
+        return (TextView) findViewById(R.id.popup_text);
     }
 }

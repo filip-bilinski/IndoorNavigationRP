@@ -69,6 +69,7 @@ def create_spectrogram(array):
 
     rgb = cv2.imread("temp.jpg")
     rgb = rgb[59:428, 80:579]
+    
     rgb = cv2.resize(rgb, (32, 5))
     grayscale = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
 
@@ -174,10 +175,23 @@ def train():
 
 @APP.route('/clasify', methods=['POST'])
 def calsify_room():
-    audio = request.files['audio']
-    #TODO: run the clasifier
-    result = 'room_1'
-    return result
+    room_data = request.json
+    room_audio = room_data['audio']
+
+    np_arr = np.asarray(room_audio, dtype=np.int16)
+    np_arr = np_arr[0, int(2 * interval_samples):]
+    offset = find_first_chirp(np_arr)
+    start_rate = int(interval_samples + offset + chirp_radius_samples)
+    end_rate = int(start_rate + interval_rate)
+
+    np_arr = np_arr[start_rate:end_rate]
+    grayscale = create_spectrogram(np_arr)
+
+    prediction = clasifier.run(grayscale)
+    int_label = np.argmax(prediction[0])
+    label = db.int_label_to_room(int_label)
+
+    return label
 
 if __name__ == '__main__':
     APP.run(host='0.0.0.0', debug=True)

@@ -2,6 +2,7 @@ import tensorflow as tf
 
 from tensorflow.keras import datasets, layers, models
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 class CNN_clasifier():
@@ -53,9 +54,9 @@ class CNN_clasifier():
 
         model.add(layers.Flatten())
 
-        model.add(layers.Dense(1024, activation='relu'))
+        model.add(layers.Dense(1024))
         model.add(layers.Dropout(0.4))
-        model.add(layers.Dense(number_of_rooms, activation='relu'))
+        model.add(layers.Dense(number_of_rooms))
 
         model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
@@ -65,7 +66,7 @@ class CNN_clasifier():
         self.trained = False
         self.initialized = True
     
-    def tarin_model(self, training_data, training_labels, epochs=30, validation_data=None):
+    def tarin_model(self, training_data, training_labels, epochs=20, validation_data=None):
         if self.trained:
             print("Model already tarined, initialize new model first")
             return
@@ -75,7 +76,7 @@ class CNN_clasifier():
             return
 
 
-        history = self.model.fit(training_data, training_labels, epochs=epochs, validation_data=validation_data)
+        history = self.model.fit(training_data, training_labels, batch_size=1, epochs=epochs, validation_data=validation_data)
         self.trained = True
         if validation_data is not None:
             self.evaluate_model(history, validation_data[0], validation_data[1])
@@ -110,6 +111,13 @@ class CNN_clasifier():
             return
 
         self.model.summary()
+
+    def run(self, grayscale):
+        if not self.trained:
+            return "No model trained"
+
+        label = self.model.predict(np.array( [grayscale,]))
+        return label
 
 
 if __name__ == '__main__':

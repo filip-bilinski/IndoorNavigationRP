@@ -54,9 +54,9 @@ class CNN_clasifier():
 
         model.add(layers.Flatten())
 
-        model.add(layers.Dense(1024))
+        model.add(layers.Dense(1024, activation='relu'))
         model.add(layers.Dropout(0.4))
-        model.add(layers.Dense(number_of_rooms))
+        model.add(layers.Dense(number_of_rooms, activation='softmax'))
 
         model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),

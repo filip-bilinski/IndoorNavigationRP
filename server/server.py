@@ -72,6 +72,11 @@ def create_spectrogram(array):
     
     rgb = cv2.resize(rgb, (32, 5))
     grayscale = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    
+    
+    ratio = 255 / np.max(grayscale)
+    grayscale = grayscale * ratio
+    grayscale = grayscale.astype(np.uint8)
 
     return grayscale
 
@@ -188,6 +193,7 @@ def calsify_room():
     grayscale = create_spectrogram(np_arr)
 
     prediction = clasifier.run(grayscale)
+    print(prediction)
     int_label = np.argmax(prediction[0])
     label = db.int_label_to_room(int_label)
 

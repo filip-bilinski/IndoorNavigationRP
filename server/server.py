@@ -13,7 +13,7 @@ import cv2
 import time
 from clasifier import CNN_clasifier
 from sklearn.model_selection import train_test_split
-
+from cross_corelation_util import cross_corelation
 
 APP = Flask(__name__)
 
@@ -26,18 +26,19 @@ max_frequency = 20500
 
 interval = 0.1
 sample_rate = 44100
-chirp_radius = 0.02
+chirp_duration = 0.002
 interval_samples = sample_rate * interval
-chirp_amount = 504
+chirp_amount = 506
 
 debug = True
-
-interval_rate = sample_rate * interval
-chirp_radius_samples = int(sample_rate * chirp_radius/2)
+chirp_radius_samples = int(sample_rate * chirp_duration/2)
 
 def find_first_chirp(arr):
     # Scan at most the first interval for the first chirp
-    sliced_arr = arr[:int(interval_rate)]
+    sliced_arr = arr[:int(interval_samples)]
+
+    debug_spectrogram(sliced_arr, "offset.jpg")
+
     f, t, Sxx = spectrogram(sliced_arr, 44100, window=hann(256, sym=False))
     # Only handle high frequencies
     high_frequency_indices = np.where((f > min_frequency) & (f < max_frequency))
@@ -115,13 +116,18 @@ def add_room():
     counter = 0
     np_arr = np.asarray(room_audio, dtype=np.int16)
 
-    np_arr = np_arr[0, int(2 * interval_samples): int((chirp_amount - 2) * interval_samples)]
+    np_arr = np_arr[0, int(3 * interval_samples): int((chirp_amount - 3) * interval_samples)]
+    max_corr = cross_corelation(np_arr[:int(interval_samples)])
     offset = find_first_chirp(np_arr)
 
-    for i in range(chirp_amount - 4):
+    print(offset, max_corr)
+
+    cutoff = 0.025 * sample_rate
+
+    for i in range(chirp_amount - 6):
         
         # Slice the array with the offset so that chirp is at the begining of the slice
-        start_rate = int(i * interval_samples + offset + chirp_radius_samples)
+        start_rate = int(i * interval_samples + offset + cutoff)
         end_rate = int((i + 1) * interval_samples + offset - chirp_radius_samples)
         sliced = np_arr[start_rate:end_rate]
         
@@ -184,13 +190,22 @@ def calsify_room():
     room_audio = room_data['audio']
 
     np_arr = np.asarray(room_audio, dtype=np.int16)
-    np_arr = np_arr[0, int(2 * interval_samples):]
-    offset = find_first_chirp(np_arr)
-    start_rate = int(interval_samples + offset + chirp_radius_samples)
-    end_rate = int(start_rate + interval_rate)
+    np_arr = np_arr[0, int(3 * interval_samples):]
 
+    offset = find_first_chirp(np_arr[:int(interval_samples)])
+    cutof = 0.025 * sample_rate
+    cor_max = cross_corelation(np_arr[:int(interval_samples)])
+    print(offset, cor_max)
+    start_rate = int(offset + cutof)
+    end_rate = start_rate + find_first_chirp(np_arr[start_rate:])
+
+
+    print(len(np_arr), interval_samples)
     np_arr = np_arr[start_rate:end_rate]
+    print(len(np_arr))
+    debug_spectrogram(np_arr, "clasificaion.jpg")
     grayscale = create_spectrogram(np_arr)
+
 
     prediction = clasifier.run(grayscale)
     print(prediction)

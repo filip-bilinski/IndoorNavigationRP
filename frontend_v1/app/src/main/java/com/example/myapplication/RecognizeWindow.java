@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
@@ -18,6 +19,9 @@ public class RecognizeWindow extends Activity {
         // Get layout components
         TextView popup_title = (TextView) findViewById(R.id.popup_title);
         TextView popup_text = (TextView) findViewById(R.id.popup_text);
+
+        String text = "Predicted label";
+        popup_title.setText(text);
 
         // set the text of the popup
         Intent intent = getIntent();

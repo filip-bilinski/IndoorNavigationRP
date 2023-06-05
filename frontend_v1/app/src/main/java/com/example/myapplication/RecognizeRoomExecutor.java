@@ -32,7 +32,7 @@ public class RecognizeRoomExecutor  implements Runnable{
     @Override
     public void run() {
         AudioRecord audioRecord = createAudioRecord();
-        int buffer_size = (int) (Globals.SAMPLE_RATE * Globals.RECORDING_INTERVAL * 5);
+        int buffer_size = (int) (Globals.SAMPLE_RATE * Globals.RECORDING_INTERVAL * 7);
         short[] buffer = new short[buffer_size];
 
         List<short[]> listOfRecords = new ArrayList<>();
@@ -54,7 +54,7 @@ public class RecognizeRoomExecutor  implements Runnable{
             }
         }).start();
 
-        ChirpEmitterBisccitAttempt.playSound(Globals.CHIRP_FREQUENCY, 5, cyclicBarrier);
+        ChirpEmitterBisccitAttempt.playSound(Globals.CHIRP_FREQUENCY, 7, cyclicBarrier);
 
         listOfRecords.add(Arrays.copyOf(buffer, buffer_size));
         audioRecord.stop();

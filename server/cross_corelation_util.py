@@ -1,22 +1,52 @@
 import numpy as np
 import scipy.signal as signal
 import matplotlib.pyplot as plt
+from scipy.io import wavfile
 
-sample_rate = 44100
-frequency = 20000
-duration = 0.02 
+import util
 
-def cross_corelation(arr):
+params = util.globals()
 
-    size = len(arr)
-    samples = (np.sin(2 * np.pi * np.arange(duration * sample_rate) * frequency / sample_rate)).astype(np.float32)
+def cross_corelation(arr, filename=None):
 
-    corr = signal.correlate(arr, samples, mode='valid', method='fft')
+    samples = (np.sin(2 * np.pi * np.arange(params.duration * params.sample_rate) * params.frequency / params.sample_rate)).astype(np.float32)
+
+    corr = signal.correlate(arr, samples, mode='same', method='fft')
     size = len(corr)
-    plt.plot(np.arange(size) / sample_rate, corr)
-    plt.savefig("cross_corealtion.jpg")
-    plt.clf()
+
+    started = False
+    chirp_start = []
+    chirp_end = []
+    for i in range(size):
+        if abs(corr[i]) > 100000 and not started:
+            started = True
+            chirp_start.append(i)
+        if abs(corr[i]) < 100000 and started:
+            chirp_end.append(i)
+            started = False
 
 
-    print("MAX", np.max(corr),"ARGMAX", np.argmax(corr))
-    return np.argmax(corr)
+    
+    calculated_chirp_duration = (chirp_end[len(chirp_end) - 1] - chirp_start[0])
+    chirp_midle = chirp_start[0] + calculated_chirp_duration / 2
+
+    if filename is not None:
+        plt.plot(np.arange(size) / params.sample_rate, corr)
+        plt.savefig(filename)
+        plt.clf()   
+
+
+    return chirp_midle, calculated_chirp_duration
+
+
+if __name__ == "__main__":
+    samplerate, data = wavfile.read('audio.wav')
+    np_arr = np.asarray(data, dtype=np.int16)
+
+    np_arr = np_arr[0, int(3 * params.interval_samples):]
+
+    offset = util.find_first_chirp(np_arr, debug_spec=True)
+    print("chirp loc: ", offset)
+    cor_max = cross_corelation(np_arr[:int(params.interval_samples)], "lul.jpg")
+
+

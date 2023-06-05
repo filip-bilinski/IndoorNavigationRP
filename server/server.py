@@ -1,7 +1,4 @@
 from flask import Flask, request
-from scipy.io.wavfile import write
-from scipy.signal import spectrogram
-from scipy.signal.windows import hann
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -9,11 +6,10 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from db_handler import db_handler
 import pymongo
-import cv2
-import time
 from clasifier import CNN_clasifier
 from sklearn.model_selection import train_test_split
 from cross_corelation_util import cross_corelation
+import util
 
 APP = Flask(__name__)
 
@@ -21,81 +17,8 @@ client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = db_handler(client, "RP")
 clasifier = CNN_clasifier()
 
-min_frequency = 19500
-max_frequency = 20500
-
-interval = 0.1
-sample_rate = 44100
-chirp_duration = 0.002
-interval_samples = sample_rate * interval
-chirp_amount = 506
-
+params = util.globals()
 debug = True
-chirp_radius_samples = int(sample_rate * chirp_duration/2)
-
-def find_first_chirp(arr):
-    # Scan at most the first interval for the first chirp
-    sliced_arr = arr[:int(interval_samples)]
-
-    debug_spectrogram(sliced_arr, "offset.jpg")
-
-    f, t, Sxx = spectrogram(sliced_arr, 44100, window=hann(256, sym=False))
-    # Only handle high frequencies
-    high_frequency_indices = np.where((f > min_frequency) & (f < max_frequency))
-    Sxx = Sxx[high_frequency_indices]
-
-    # Calculate the highest point of intensity to find the chirp
-    end_of_chirps = np.argmax(Sxx, axis=1)
-
-    counts = np.bincount(end_of_chirps)
-    chirp_cut_off = np.argmax(counts)
-    time_of_cut_off = t[chirp_cut_off]
-
-    return int(time_of_cut_off * sample_rate )
-
-
-def create_spectrogram(array):
-    f, t, Sxx = spectrogram(array, 44100, window=hann(256, sym=False))
-    indecies = np.where((f > min_frequency) & (f < max_frequency))
-    Sxx = Sxx[indecies]
-    f = f[indecies]
-
-    figure = plt.pcolormesh(t, f, Sxx, shading='gouraud')
-    plt.ylabel('Frequency [Hz]')
-    plt.xlabel('Time [sec]')
-    plt.savefig("temp.jpg")
-    plt.clf()
-
-    time.sleep(0.1)
-
-    rgb = cv2.imread("temp.jpg")
-    rgb = rgb[59:428, 80:579]
-    
-    rgb = cv2.resize(rgb, (32, 5))
-    grayscale = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
-    
-    
-    ratio = 255 / np.max(grayscale)
-    grayscale = grayscale * ratio
-    grayscale = grayscale.astype(np.uint8)
-
-    return grayscale
-
-def debug_spectrogram(array, filename):
-    f, t, Sxx = spectrogram(array, 44100, window=hann(256, sym=False))
-
-    
-    indecies = np.where((f > min_frequency) & (f < max_frequency))
-
-    
-    Sxx = Sxx[indecies]
-    f = f[indecies]
-
-    figure = plt.pcolormesh(t, f, Sxx, shading='gouraud')
-    plt.ylabel('Frequency [Hz]')
-    plt.xlabel('Time [sec]')
-    plt.savefig(filename)
-    plt.clf()
 
 @APP.route('/get_rooms', methods=['GET'])
 def get_rooms():
@@ -116,39 +39,37 @@ def add_room():
     counter = 0
     np_arr = np.asarray(room_audio, dtype=np.int16)
 
-    np_arr = np_arr[0, int(3 * interval_samples): int((chirp_amount - 3) * interval_samples)]
-    max_corr = cross_corelation(np_arr[:int(interval_samples)])
-    offset = find_first_chirp(np_arr)
+    np_arr = np_arr[0, int(3 * params.interval_samples): int((params.chirp_amount - 3) * params.interval_samples)]
+    offset, duration = cross_corelation(np_arr[:int(params.interval_samples)])
 
-    print(offset, max_corr)
-
-    cutoff = 0.025 * sample_rate
-
-    for i in range(chirp_amount - 6):
+    for i in range(params.chirp_amount - 7):
         
         # Slice the array with the offset so that chirp is at the begining of the slice
-        start_rate = int(i * interval_samples + offset + cutoff)
-        end_rate = int((i + 1) * interval_samples + offset - chirp_radius_samples)
+        offset, duration = cross_corelation(np_arr[int(i * params.interval_samples):int((i + 1) * params.interval_samples)])
+        start_rate = int(i * params.interval_samples + offset + duration / 2)
+        offset, duration = cross_corelation(np_arr[int(start_rate):int(start_rate + params.interval_samples)])
+        end_rate = int(start_rate + offset - duration / 2)
+
         sliced = np_arr[start_rate:end_rate]
         
         if debug and i < 20:
-            start_rate_debug = int(i * interval_samples + offset)
-            end_rate_debug = int((i + 1) * interval_samples + offset)
+            start_rate_debug = int(i * params.interval_samples + offset)
+            end_rate_debug = int((i + 1) * params.interval_samples + offset)
 
             sliced_debug = np_arr[start_rate_debug:end_rate_debug]
 
-            debug_spectrogram(sliced, 'tarck_cut' + str(counter) + '.jpg')
-            debug_spectrogram(sliced_debug, 'tarck' + str(counter) + '.jpg')
+            util.debug_spectrogram(sliced, 'tarck_cut' + str(counter) + '.jpg')
+            util.debug_spectrogram(sliced_debug, 'tarck' + str(counter) + '.jpg')
         counter += 1
 
         # Create spectrogram
-        rgb = create_spectrogram(sliced)
+        rgb = util.create_spectrogram(sliced)
 
         # Save entry to database
         data = {
-        u'building': building_label,
-        u'room': room_label,
-        u'audio': rgb.tolist()
+            u'building': building_label,
+            u'room': room_label,
+            u'audio': rgb.tolist()
         }
         db.add_entry(building_label, data)
 
@@ -188,23 +109,25 @@ def train():
 def calsify_room():
     room_data = request.json
     room_audio = room_data['audio']
+    
 
     np_arr = np.asarray(room_audio, dtype=np.int16)
-    np_arr = np_arr[0, int(3 * interval_samples):]
+    np_arr = np_arr[0, int(3 * params.interval_samples):]
 
-    offset = find_first_chirp(np_arr[:int(interval_samples)])
-    cutof = 0.025 * sample_rate
-    cor_max = cross_corelation(np_arr[:int(interval_samples)])
-    print(offset, cor_max)
-    start_rate = int(offset + cutof)
-    end_rate = start_rate + find_first_chirp(np_arr[start_rate:])
+    offset = util.find_first_chirp(np_arr, debug_spec=True)
+    offset_2, duration = cross_corelation(np_arr[:int(params.interval_samples)], "cross_corealtion.jpg")
+
+    print("Offset: ", offset, " Max correlation: ", offset_2)
+    print("chirp_duration: ", duration)
+    start_rate = int(offset + params.cutoff)
+    end_rate = start_rate + util.find_first_chirp(np_arr[start_rate:] - params.chirp_radius_samples)
+
+    print("Designed length: ", 0.0862 * params.sample_rate, "True lenght: ", end_rate - start_rate)
 
 
-    print(len(np_arr), interval_samples)
     np_arr = np_arr[start_rate:end_rate]
-    print(len(np_arr))
-    debug_spectrogram(np_arr, "clasificaion.jpg")
-    grayscale = create_spectrogram(np_arr)
+    util.debug_spectrogram(np_arr, "clasificaion.jpg")
+    grayscale = util.create_spectrogram(np_arr)
 
 
     prediction = clasifier.run(grayscale)

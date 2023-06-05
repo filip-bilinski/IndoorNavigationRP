@@ -47,8 +47,13 @@ def add_room():
         # Slice the array with the offset so that chirp is at the begining of the slice
         offset, duration = cross_corelation(np_arr[int(i * params.interval_samples):int((i + 1) * params.interval_samples)])
         start_rate = int(i * params.interval_samples + offset + duration / 2)
+        if offset == 0 and duration == 0:
+            continue
+        
         offset, duration = cross_corelation(np_arr[int(start_rate):int(start_rate + params.interval_samples)])
         end_rate = int(start_rate + offset - duration / 2)
+        if offset == 0 and duration == 0:
+            continue
 
         sliced = np_arr[start_rate:end_rate]
         
@@ -114,15 +119,13 @@ def calsify_room():
     np_arr = np.asarray(room_audio, dtype=np.int16)
     np_arr = np_arr[0, int(3 * params.interval_samples):]
 
-    offset = util.find_first_chirp(np_arr, debug_spec=True)
-    offset_2, duration = cross_corelation(np_arr[:int(params.interval_samples)], "cross_corealtion.jpg")
+    offset, duration = cross_corelation(np_arr[:int(params.interval_samples)], "cross_corealtion.jpg")
 
-    print("Offset: ", offset, " Max correlation: ", offset_2)
-    print("chirp_duration: ", duration)
-    start_rate = int(offset + params.cutoff)
-    end_rate = start_rate + util.find_first_chirp(np_arr[start_rate:] - params.chirp_radius_samples)
+    start_rate = int(offset + duration / 2)
+    offset, duration = cross_corelation(np_arr[start_rate:start_rate + int(params.interval_samples)], "cross_corealtion.jpg")
+    end_rate = int(start_rate + offset - duration / 2)
 
-    print("Designed length: ", 0.0862 * params.sample_rate, "True lenght: ", end_rate - start_rate)
+    print("True lenght: ", (end_rate - start_rate) / params.sample_rate)
 
 
     np_arr = np_arr[start_rate:end_rate]

@@ -25,6 +25,8 @@ def cross_corelation(arr, filename=None):
             chirp_end.append(i)
             started = False
 
+    if len(chirp_start) == 0 or len(chirp_end) == 0:
+        return 0, 0
 
     
     calculated_chirp_duration = (chirp_end[len(chirp_end) - 1] - chirp_start[0])

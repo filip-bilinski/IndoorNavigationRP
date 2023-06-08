@@ -55,7 +55,7 @@ def create_spectrogram(array):
     Sxx = Sxx[indecies]
     f = f[indecies]
 
-    figure = plt.pcolormesh(t, f, Sxx, shading='gouraud')
+    figure = plt.pcolormesh(t, f, Sxx, shading='nearest')
     plt.axis('off')
     plt.savefig("temp.jpg", bbox_inches='tight', pad_inches=0)
     plt.clf()

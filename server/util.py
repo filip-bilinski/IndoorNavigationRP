@@ -24,7 +24,7 @@ class globals:
         self.interval = 0.1
         self.chirp_duration = 0.0025
         self.interval_samples = self.sample_rate * self.interval
-        self.chirp_amount = 507
+        self.chirp_amount = 27
         self.cutoff = 0.0138 * self.sample_rate
 
         self.chirp_radius_samples = int(self.sample_rate * self.chirp_duration/2)
@@ -69,7 +69,8 @@ def create_spectrogram(array):
     rgb = cv2.resize(rgb, (32, 5))
     grayscale = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
     
-     
+    ratio = 255/np.max(grayscale)
+    grayscale = grayscale * ratio
 
     return grayscale
 

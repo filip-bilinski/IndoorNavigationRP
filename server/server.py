@@ -10,7 +10,8 @@ from clasifier import CNN_clasifier
 from sklearn.model_selection import train_test_split
 from cross_corelation_util import cross_corelation
 import util
-
+import time
+import cv2
 APP = Flask(__name__)
 
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -19,6 +20,7 @@ clasifier = CNN_clasifier()
 
 params = util.globals()
 debug = True
+
 
 @APP.route('/get_rooms', methods=['GET'])
 def get_rooms():
@@ -69,6 +71,8 @@ def add_room():
 
         # Create spectrogram
         rgb = util.create_spectrogram(sliced)
+        cv2.imwrite("autoencoder_data/laundry" + str(time.time()) + ".jpg", rgb)
+        
 
         # Save entry to database
         data = {
@@ -76,7 +80,7 @@ def add_room():
             u'room': room_label,
             u'audio': rgb.tolist()
         }
-        db.add_entry(building_label, data)
+        #db.add_entry(building_label, data)
 
 
     return 'OK'

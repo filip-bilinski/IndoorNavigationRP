@@ -56,21 +56,19 @@ def create_spectrogram(array):
     f = f[indecies]
 
     figure = plt.pcolormesh(t, f, Sxx, shading='gouraud')
-    plt.ylabel('Frequency [Hz]')
-    plt.xlabel('Time [sec]')
-    plt.savefig("temp.jpg")
+    plt.axis('off')
+    plt.savefig("temp.jpg", bbox_inches='tight', pad_inches=0)
     plt.clf()
 
-    time.sleep(0.1)
+    time.sleep(0.2)
 
     rgb = cv2.imread("temp.jpg")
-    rgb = rgb[59:428, 80:579]
     
     rgb = cv2.resize(rgb, (32, 5))
     grayscale = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
     
     ratio = 255/np.max(grayscale)
-    grayscale = grayscale * ratio
+    grayscale = (grayscale * ratio).astype(np.uint8)
 
     return grayscale
 

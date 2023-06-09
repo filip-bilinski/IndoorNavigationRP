@@ -61,7 +61,7 @@ def add_room():
         
         # Create spectrogram
         spectrogram = util.create_spectrogram(sliced)
-        # cv2.imwrite("autoencoder_data/laundry" + str(time.time()) + ".jpg", spectrogram)
+        # cv2.imwrite("autoencoder_data/bedroom" + str(time.time()) + ".jpg", spectrogram)
 
         if debug and i < 20:
             cv2.imwrite('spectrogram' + str(counter) + '.jpg', spectrogram)
@@ -74,7 +74,7 @@ def add_room():
             u'room': room_label,
             u'audio': spectrogram.tolist()
         }
-        #db.add_entry(building_label, data)
+        db.add_entry(building_label, data)
 
 
     return 'OK'
@@ -101,7 +101,7 @@ def load_model():
 @APP.route('/train_model', methods=['GET'])
 def train():
     labels, data = db.prepare_training_dataset()
-    images_train, images_test, labels_train, labels_test = train_test_split(data, labels, test_size=0.5, random_state=42)
+    images_train, images_test, labels_train, labels_test = train_test_split(data, labels, test_size=(1/6), random_state=42)
     print(len(labels), len(data))
     clasifier.tarin_model(images_train, labels_train, validation_data=(images_test, labels_test))
 

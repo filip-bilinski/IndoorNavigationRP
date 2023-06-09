@@ -23,7 +23,7 @@ class globals:
         self.interval = 0.1
         self.chirp_duration = 0.0025
         self.interval_samples = self.sample_rate * self.interval
-        self.chirp_amount = 27
+        self.chirp_amount = 107
         self.cutoff = 0.0138 * self.sample_rate
 
         self.chirp_radius_samples = int(self.sample_rate * self.chirp_duration/2)

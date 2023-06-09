@@ -8,7 +8,6 @@ from db_handler import db_handler
 import pymongo
 from clasifier import CNN_clasifier
 from sklearn.model_selection import train_test_split
-from cross_corelation_util import cross_corelation
 import util
 import time
 import cv2
@@ -42,43 +41,38 @@ def add_room():
     np_arr = np.asarray(room_audio, dtype=np.int16)
 
     np_arr = np_arr[0, int(3 * params.interval_samples): int((params.chirp_amount - 3) * params.interval_samples)]
-    offset, duration = cross_corelation(np_arr[:int(params.interval_samples)])
+    offset, duration = util.cross_corelation(np_arr[:int(params.interval_samples)])
 
     for i in range(params.chirp_amount - 7):
         
         # Slice the array with the offset so that chirp is at the begining of the slice
-        offset, duration = cross_corelation(np_arr[int(i * params.interval_samples):int((i + 1) * params.interval_samples)])
+        offset, duration = util.cross_corelation(np_arr[int(i * params.interval_samples):int((i + 1) * params.interval_samples)])
         start_rate = int(i * params.interval_samples + offset + duration / 2)
         if offset == 0 and duration == 0:
             continue
         
-        offset, duration = cross_corelation(np_arr[int(start_rate):int(start_rate + params.interval_samples)])
+        offset, duration = util.cross_corelation(np_arr[int(start_rate):int(start_rate + params.interval_samples)])
         end_rate = int(start_rate + offset - duration / 2)
         if offset == 0 and duration == 0:
             continue
 
         sliced = np_arr[start_rate:end_rate]
         
+        
+        # Create spectrogram
+        spectrogram = util.create_spectrogram(sliced)
+        # cv2.imwrite("autoencoder_data/laundry" + str(time.time()) + ".jpg", spectrogram)
+
         if debug and i < 20:
-            start_rate_debug = int(i * params.interval_samples + offset)
-            end_rate_debug = int((i + 1) * params.interval_samples + offset)
-
-            sliced_debug = np_arr[start_rate_debug:end_rate_debug]
-
-            util.debug_spectrogram(sliced, 'tarck_cut' + str(counter) + '.jpg')
-            util.debug_spectrogram(sliced_debug, 'tarck' + str(counter) + '.jpg')
+            cv2.imwrite('spectrogram' + str(counter) + '.jpg', spectrogram)
         counter += 1
 
-        # Create spectrogram
-        rgb = util.create_spectrogram(sliced)
-        cv2.imwrite("autoencoder_data/laundry" + str(time.time()) + ".jpg", rgb)
-        
 
         # Save entry to database
         data = {
             u'building': building_label,
             u'room': room_label,
-            u'audio': rgb.tolist()
+            u'audio': spectrogram.tolist()
         }
         #db.add_entry(building_label, data)
 
@@ -123,10 +117,10 @@ def calsify_room():
     np_arr = np.asarray(room_audio, dtype=np.int16)
     np_arr = np_arr[0, int(3 * params.interval_samples):]
 
-    offset, duration = cross_corelation(np_arr[:int(params.interval_samples)], "cross_corealtion.jpg")
+    offset, duration = util.cross_corelation(np_arr[:int(params.interval_samples)], "cross_corealtion.jpg")
 
     start_rate = int(offset + duration / 2)
-    offset, duration = cross_corelation(np_arr[start_rate:start_rate + int(params.interval_samples)], "cross_corealtion.jpg")
+    offset, duration = util.cross_corelation(np_arr[start_rate:start_rate + int(params.interval_samples)], "cross_corealtion.jpg")
     end_rate = int(start_rate + offset - duration / 2)
 
     print("True lenght: ", (end_rate - start_rate) / params.sample_rate)

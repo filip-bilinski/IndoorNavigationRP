@@ -121,5 +121,6 @@ class CNN_clasifier():
 
 
 if __name__ == '__main__':
-    clasifier = CNN_clasifier(10)
+    clasifier = CNN_clasifier()
+    clasifier.create_new_model(10)
     clasifier.summary()

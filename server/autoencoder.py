@@ -16,7 +16,9 @@ class Autoencoder(Model):
         self.encoder = tf.keras.Sequential([
             layers.Input(shape=(5, 32, 1)),
             layers.Conv2D(16, (3, 3), activation='relu', padding='same', strides=1),
-            layers.Conv2D(8, (3, 3), activation='relu', padding='same', strides=1)
+            layers.MaxPooling2D((2,2), padding='same', strides=1),
+            layers.Conv2D(8, (3, 3), activation='relu', padding='same', strides=1),
+            layers.MaxPooling2D((2,2), padding='same', strides=1)
         ])
 
         self.decoder = tf.keras.Sequential([
@@ -27,7 +29,7 @@ class Autoencoder(Model):
 
         
         
-        self.decoder.build(input_shape=(None, 2, 8, 8))
+        self.decoder.build(input_shape=(None, 5, 32, 8))
 
         self.compile(optimizer='adam', loss=losses.MeanSquaredError())
         
@@ -55,11 +57,11 @@ def load_images_folder(path):
     return images
 
 def main():
-    images_noise = np.asarray(load_images_folder('autoencoder_data/with_noise'))
-    images = np.asarray(load_images_folder('autoencoder_data/no_noise'))
-    print(images_noise.shape, images.shape)
+    # images_noise = np.asarray(load_images_folder('autoencoder_data/with_noise'))
+    # images = np.asarray(load_images_folder('autoencoder_data/no_noise'))
+    # print(images_noise.shape, images.shape)
 
-    images_noise_train, images_noise_test, images_train, images_test = train_test_split(images_noise, images, test_size=0.1, random_state=42)
+    # images_noise_train, images_noise_test, images_train, images_test = train_test_split(images_noise, images, test_size=0.1, random_state=42)
 
 
     autoencoder = Autoencoder()

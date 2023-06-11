@@ -35,9 +35,6 @@ class Autoencoder(Model):
         
         self.trained = False
 
-        self.encoder.summary()
-        self.decoder.summary()
-
     
     def train(self, noisy_images_train, images_train, validation_images=None):
         self.fit(noisy_images_train, images_train, epochs=20, shuffle=True, validation_data=validation_images, batch_size=1)
@@ -71,7 +68,6 @@ def load_images_folder(path):
 def main():
     images_noise = np.asarray(load_images_folder('autoencoder_data/with_noise'))
     images = np.asarray(load_images_folder('autoencoder_data/no_noise'))
-    print(images_noise.shape, images.shape)
 
     images_noise_train, images_noise_test, images_train, images_test = train_test_split(images_noise, images, test_size=(1/6), random_state=42)
 
@@ -81,15 +77,11 @@ def main():
     autoencoder.load_model()
 
     example_im = cv2.imread("autoencoder_data/with_noise/bedroom1686294660.6565168.jpg", cv2.IMREAD_GRAYSCALE)
-    print(example_im.shape)
     example_output = autoencoder.call(np.array([example_im,])).numpy()[0].reshape((5, 32))
     example_output = (example_output * 255.0).astype(np.uint8)
 
-    print(np.max(example_output), np.min(example_output))
-    print(example_output)
-    print(example_output.shape, example_im.shape, example_output.dtype, example_im.dtype)
-
     combined_im = cv2.vconcat([example_im, example_output])
+    combined_im = cv2.resize(combined_im, (combined_im.shape[1] * 10, combined_im.shape[0] * 10))
     cv2.imwrite("denoise_output.jpg", combined_im)
 
     # autoencoder.save_model()

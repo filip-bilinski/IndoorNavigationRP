@@ -5,6 +5,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from db_handler import db_handler
+from autoencoder import Autoencoder
+from experiments.music_spectrogram_analysis import run_music_experiment
 import pymongo
 from clasifier import CNN_clasifier
 from sklearn.model_selection import train_test_split
@@ -16,6 +18,7 @@ APP = Flask(__name__)
 client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = db_handler(client, "RP")
 clasifier = CNN_clasifier()
+autoencoder = Autoencoder()
 
 params = util.globals()
 debug = True
@@ -36,6 +39,8 @@ def add_room():
     room_label = room_data['room_label']
     building_label = room_data['building_label']
     room_audio = room_data['audio']
+
+    # run_music_experiment(room_audio)
 
     counter = 0
     np_arr = np.asarray(room_audio, dtype=np.int16)
@@ -61,6 +66,8 @@ def add_room():
         
         # Create spectrogram
         spectrogram = util.create_spectrogram(sliced)
+        spectrogram = spectrogram.astype(np.float32) / 255.0
+        spectrogram = (autoencoder.call(np.array([spectrogram, ])).numpy()[0].reshape((5, 32)) * 255.0).astype(np.uint8)
         # cv2.imwrite("autoencoder_data/bedroom" + str(time.time()) + ".jpg", spectrogram)
 
         if debug and i < 20:
@@ -101,6 +108,12 @@ def load_model():
 @APP.route('/train_model', methods=['GET'])
 def train():
     labels, data = db.prepare_training_dataset()
+    data_encoder = []
+    for spectrogram in data:
+        spectrogram = np.array(spectrogram, dtype=np.float32) / 255.0
+        spectrogram = (autoencoder.call(np.array([spectrogram, ])).numpy()[0].reshape((5, 32)) * 255.0).astype(np.uint8)
+
+
     images_train, images_test, labels_train, labels_test = train_test_split(data, labels, test_size=(1/6), random_state=42)
     print(len(labels), len(data))
     clasifier.tarin_model(images_train, labels_train, validation_data=(images_test, labels_test))
@@ -127,11 +140,12 @@ def calsify_room():
 
 
     np_arr = np_arr[start_rate:end_rate]
-    util.debug_spectrogram(np_arr, "clasificaion.jpg")
-    grayscale = util.create_spectrogram(np_arr)
 
+    spectrogram = util.create_spectrogram(np_arr)
+    spectrogram = spectrogram.astype(np.float32) / 255.0
+    spectrogram = (autoencoder.call(np.array([spectrogram, ])).numpy()[0].reshape((5, 32)) * 255.0).astype(np.uint8)
 
-    prediction = clasifier.run(grayscale)
+    prediction = clasifier.run(spectrogram)
     print(prediction)
     int_label = np.argmax(prediction[0])
     label = db.int_label_to_room(int_label)
@@ -139,5 +153,6 @@ def calsify_room():
     return label
 
 if __name__ == '__main__':
+    autoencoder.load_model()
     APP.run(host='0.0.0.0', debug=True)
 

@@ -7,6 +7,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import cv2
+import os
 import time
 
 
@@ -124,6 +125,20 @@ def cross_corelation(arr, filename=None):
 
 
     return chirp_midle, calculated_chirp_duration
+
+
+def load_images_folder(path):
+    images = []
+    
+    files = os.listdir(path)
+    files.sort()
+
+    for file in files:
+        img = cv2.imread(os.path.join(path, file), cv2.IMREAD_GRAYSCALE)
+        img = img.astype(np.float32) / 255.0
+        images.append(img)
+    
+    return images
 
 
 if __name__ == "__main__":

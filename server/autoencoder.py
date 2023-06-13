@@ -6,8 +6,9 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers, losses
 from tensorflow.keras.models import Model, load_model
 
-import os
 import cv2
+
+from util import load_images_folder
 
 class Autoencoder(Model):
 
@@ -36,9 +37,18 @@ class Autoencoder(Model):
         self.trained = False
 
     
-    def train(self, noisy_images_train, images_train, validation_images=None):
-        self.fit(noisy_images_train, images_train, epochs=20, shuffle=True, validation_data=validation_images, batch_size=1)
+    def train(self, noisy_images_train, images_train, validation_images=None, training_report=False):
+        history = self.fit(noisy_images_train, images_train, epochs=20, shuffle=True, validation_data=validation_images, batch_size=1)
         self.trained = True
+
+        if training_report:
+            plt.plot(history.history['loss'], label='loss')
+            plt.plot(history.history['val_loss'], label = 'val_loss')
+            plt.xlabel('Epoch')
+            plt.ylabel('Loss')
+            plt.ylim([0.0, 0.02])
+            plt.legend(loc='lower right')
+            plt.savefig("training_report.jpg")
 
     def call(self, image):
         encoded = self.encoder(image)
@@ -55,16 +65,6 @@ class Autoencoder(Model):
         self.trained = True
 
 
-
-def load_images_folder(path):
-    images = []
-    for file in os.listdir(path):
-        img = cv2.imread(os.path.join(path, file), cv2.IMREAD_GRAYSCALE)
-        img = img.astype(np.float32) / 255.0
-        images.append(img)
-    
-    return images
-
 def main():
     images_noise = np.asarray(load_images_folder('autoencoder_data/with_noise'))
     images = np.asarray(load_images_folder('autoencoder_data/no_noise'))
@@ -73,7 +73,7 @@ def main():
 
 
     autoencoder = Autoencoder()
-    # autoencoder.train(images_noise_train, images_train, validation_images=(images_noise_test, images_test))
+    # autoencoder.train(images_noise_train, images_train, validation_images=(images_noise_test, images_test), training_report=True)
     autoencoder.load_model()
 
     example_im = cv2.imread("autoencoder_data/with_noise/bedroom1686294660.6565168.jpg", cv2.IMREAD_GRAYSCALE)

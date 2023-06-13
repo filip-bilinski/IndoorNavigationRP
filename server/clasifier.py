@@ -59,14 +59,15 @@ class CNN_clasifier():
         model.add(layers.Dense(number_of_rooms, activation='softmax'))
 
         model.compile(optimizer='adam',
-              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
         
         self.model = model
         self.trained = False
         self.initialized = True
+        self.number_of_rooms = number_of_rooms
     
-    def tarin_model(self, training_data, training_labels, epochs=10, validation_data=None):
+    def tarin_model(self, training_data, training_labels, epochs=50, validation_data=None):
         if self.trained:
             print("Model already tarined, initialize new model first")
             return
@@ -74,6 +75,16 @@ class CNN_clasifier():
         if not self.initialized:
             print("Model not initialized")
             return
+
+        if validation_data is not None:
+            validation_images, validation_labels = validation_data
+            validation_images = np.asarray(validation_images)
+            validation_labels = np.asarray(validation_labels)
+            validation_data = (validation_images, tf.keras.utils.to_categorical(validation_labels, self.number_of_rooms))
+
+        training_data = np.asarray(training_data)
+        training_labels = np.asarray(training_labels)
+        training_labels = tf.keras.utils.to_categorical(training_labels, self.number_of_rooms)
 
 
         history = self.model.fit(training_data, training_labels, batch_size=1, epochs=epochs, validation_data=validation_data)
@@ -88,7 +99,7 @@ class CNN_clasifier():
         plt.ylabel('Accuracy')
         plt.ylim([0.5, 1])
         plt.legend(loc='lower right')
-        plt.savefig("tarining_report.jpg")
+        plt.savefig("training_report.jpg")
 
         test_loss, test_acc = self.model.evaluate(test_images,  test_labels, verbose=2)
         

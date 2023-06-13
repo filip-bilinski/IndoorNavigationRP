@@ -21,7 +21,7 @@ clasifier = CNN_clasifier()
 autoencoder = Autoencoder()
 
 params = util.globals()
-debug = True
+debug = False
 
 
 @APP.route('/get_rooms', methods=['GET'])
@@ -66,10 +66,7 @@ def add_room():
         
         # Create spectrogram
         spectrogram = util.create_spectrogram(sliced)
-        spectrogram = spectrogram.astype(np.float32) / 255.0
-        spectrogram = (autoencoder.call(np.array([spectrogram, ])).numpy()[0].reshape((5, 32)) * 255.0).astype(np.uint8)
-        # cv2.imwrite("autoencoder_data/bedroom" + str(time.time()) + ".jpg", spectrogram)
-
+        
         if debug and i < 20:
             cv2.imwrite('spectrogram' + str(counter) + '.jpg', spectrogram)
         counter += 1
@@ -108,7 +105,6 @@ def load_model():
 @APP.route('/train_model', methods=['GET'])
 def train():
     labels, data = db.prepare_training_dataset()
-    data_encoder = []
     for spectrogram in data:
         spectrogram = np.array(spectrogram, dtype=np.float32) / 255.0
         spectrogram = (autoencoder.call(np.array([spectrogram, ])).numpy()[0].reshape((5, 32)) * 255.0).astype(np.uint8)

@@ -22,6 +22,7 @@ autoencoder = Autoencoder()
 
 params = util.globals()
 debug = False
+use_autoencoder = True
 
 
 @APP.route('/get_rooms', methods=['GET'])
@@ -92,25 +93,35 @@ def create_model():
 
 @APP.route('/save_model', methods=['GET'])
 def save_model():
-    clasifier.save_model('model')
+    if use_autoencoder:
+        clasifier.save_model('model+ae')
+    else:
+        clasifier.save_model('model')
 
     return 'OK'
 
 @APP.route('/load_model', methods=['GET'])
 def load_model():
-    clasifier.load_model('model')
+    if use_autoencoder:
+        clasifier.load_model('model+ae')
+    else:
+        clasifier.load_model('model')
 
     return 'OK'
 
 @APP.route('/train_model', methods=['GET'])
 def train():
+    autoencoder.load_model()
+
     labels, data = db.prepare_training_dataset()
-    for spectrogram in data:
-        spectrogram = np.array(spectrogram, dtype=np.float32) / 255.0
-        spectrogram = (autoencoder.call(np.array([spectrogram, ])).numpy()[0].reshape((5, 32)) * 255.0).astype(np.uint8)
+
+    if use_autoencoder:
+        for spectrogram in data:
+            spectrogram = np.array(spectrogram, dtype=np.float32) / 255.0
+            spectrogram = (autoencoder.call(np.array([spectrogram, ])).numpy()[0].reshape((5, 32)) * 255.0).astype(np.uint8)
 
 
-    images_train, images_test, labels_train, labels_test = train_test_split(data, labels, test_size=(1/6), random_state=42)
+    images_train, images_test, labels_train, labels_test = train_test_split(data, labels, test_size=(1/3))
     print(len(labels), len(data))
     clasifier.tarin_model(images_train, labels_train, validation_data=(images_test, labels_test))
 
@@ -119,6 +130,8 @@ def train():
 
 @APP.route('/clasify', methods=['POST'])
 def calsify_room():
+    autoencoder.load_model()
+
     room_data = request.json
     room_audio = room_data['audio']
     
@@ -138,8 +151,10 @@ def calsify_room():
     np_arr = np_arr[start_rate:end_rate]
 
     spectrogram = util.create_spectrogram(np_arr)
-    spectrogram = spectrogram.astype(np.float32) / 255.0
-    spectrogram = (autoencoder.call(np.array([spectrogram, ])).numpy()[0].reshape((5, 32)) * 255.0).astype(np.uint8)
+    
+    if use_autoencoder:
+        spectrogram = spectrogram.astype(np.float32) / 255.0
+        spectrogram = (autoencoder.call(np.array([spectrogram, ])).numpy()[0].reshape((5, 32)) * 255.0).astype(np.uint8)
 
     prediction = clasifier.run(spectrogram)
     print(prediction)
@@ -149,6 +164,5 @@ def calsify_room():
     return label
 
 if __name__ == '__main__':
-    autoencoder.load_model()
     APP.run(host='0.0.0.0', debug=True)
 

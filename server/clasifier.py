@@ -67,7 +67,7 @@ class CNN_clasifier():
         self.initialized = True
         self.number_of_rooms = number_of_rooms
     
-    def tarin_model(self, training_data, training_labels, epochs=50, validation_data=None):
+    def tarin_model(self, training_data, training_labels, epochs=20, validation_data=None):
         if self.trained:
             print("Model already tarined, initialize new model first")
             return
@@ -90,18 +90,20 @@ class CNN_clasifier():
         history = self.model.fit(training_data, training_labels, batch_size=1, epochs=epochs, validation_data=validation_data)
         self.trained = True
         if validation_data is not None:
-            self.evaluate_model(history, validation_data[0], validation_data[1])
+            self.evaluate_model(validation_data[0], validation_data[1], history)
 
-    def evaluate_model(self, history, test_images, test_labels):
-        plt.plot(history.history['accuracy'], label='accuracy')
-        plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
-        plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
-        plt.ylim([0.5, 1])
-        plt.legend(loc='lower right')
-        plt.savefig("training_report.jpg")
+    def evaluate_model(self, test_images, test_labels, history=None):
+        if history is not None:
+            plt.plot(history.history['accuracy'], label='accuracy')
+            plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+            plt.xlabel('Epoch')
+            plt.ylabel('Accuracy')
+            plt.ylim([0.5, 1])
+            plt.legend(loc='lower right')
+            plt.savefig("training_report.jpg")
 
         test_loss, test_acc = self.model.evaluate(test_images,  test_labels, verbose=2)
+        return test_loss, test_acc
         
 
     def save_model(self, filename):

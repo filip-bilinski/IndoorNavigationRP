@@ -8,6 +8,9 @@ class db_handler:
     def add_entry(self, building, room):
         self.data_base[building].insert_one(room)
 
+    def remove_entry(self, building, room):
+        self.data_base[building].delete_many({'room':room})
+
     def retrieve_rooms(self):
         result = {}
         number_of_rooms = 0
@@ -61,3 +64,8 @@ class db_handler:
         
         for document in coursor:
             return list(document.keys())[list(document.values()).index(int_label)]
+
+if __name__ == "__main__":
+    client = pymongo.MongoClient("mongodb://localhost:27017/")
+    db = db_handler(client, "RP")
+    db.remove_entry('home', 'bedroom')
